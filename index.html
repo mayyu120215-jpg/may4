@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Human Charades Relay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Pacifico&family=Patrick+Hand&display=swap">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/htm@3.1.1/dist/htm.umd.js"></script>
+<style>
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light}
+body{background-color:#fff0f3;background-image:linear-gradient(90deg,rgba(244,114,150,.3) 50%,transparent 50%),linear-gradient(rgba(244,114,150,.3) 50%,transparent 50%);background-size:48px 48px;background-attachment:fixed;color:#7a1f3d;font-family:'Patrick Hand',system-ui,sans-serif;padding-bottom:70px}
+body::after{content:'';position:fixed;left:0;right:0;bottom:0;height:50px;pointer-events:none;background:radial-gradient(circle at 20px 18px,#fff 5px,transparent 6px) 0 0/90px 50px,radial-gradient(circle at 60px 32px,#ffd23f 4px,transparent 5px) 0 0/90px 50px,linear-gradient(#a6d98a,#7cc069);border-top:4px solid #8fcf74}
+.fancy{font-family:'Pacifico',cursive;color:#d8264e;font-weight:400}.hl{background:linear-gradient(transparent 58%,#ffe27a 58%);padding:0 .3em}
+.btn{border-radius:999px;padding:1rem 2rem;font-weight:800;font-size:1.3rem;color:#fff;background:#ec5b84;min-height:56px;box-shadow:0 5px 0 rgba(0,0,0,.2)}
+.btn:active{opacity:.8}.btn:disabled{opacity:.35}.btn.alt{background:#b9889a}
+.card{background:#fffaf0;border:3px dashed #f4a6bd;border-radius:1.75rem;box-shadow:0 5px 0 rgba(216,38,78,.15)}
+</style></head><body><div id="root"></div>
+<script>
+const {useState,useEffect}=React,html=htm.bind(React.createElement);
+const Q=[["Brushing Your Teeth","E","🪥"],["Playing Basketball","E","🏀"],["Swimming","E","🏊"],["Eating Spaghetti","E","🍝"],["Walking a Dog","E","🐕"],["Riding a Bicycle","E","🚲"],["Taking a Shower","E","🚿"],["Playing the Guitar","E","🎸"],["Cooking Fried Rice","E","🍳"],["Taking a Selfie","E","🤳"],
+["Catching a Fish","M","🎣"],["Riding a Horse","M","🐴"],["Changing a Baby's Diaper","M","👶"],["Fighting a Mosquito","M","🦟"],["Blowing Up a Balloon","M","🎈"],["Opening a Stuck Jar","M","🫙"],["Walking on Slippery Ice","M","🧊"],["Putting on Tight Jeans","M","👖"],["Singing in the Shower","M","🎤"],["Carrying a Heavy Suitcase","M","🧳"],
+["Stepping on LEGO Barefoot","H","🧱"],["Chasing a Flying Umbrella","H","☂️"],["Sneaking Past a Sleeping Lion","H","🦁"],["Trying to Catch a Flying Cockroach","H","🪳"],["Eating Extremely Spicy Noodles","H","🌶️"],["Walking Against a Strong Wind","H","💨"],["Getting Attacked by a Swarm of Bees","H","🐝"],["Trying Not to Laugh in a Serious Meeting","H","🤐"],["Realizing You Forgot Your Phone on the Bus","H","📱"],["Trying to Take a Photo with a Wild Monkey","H","🐒"]];
+const PLAN=["E","E","M","M","H"],DN={E:"Easy",M:"Medium",H:"Hard"},DC={E:"bg-green-500",M:"bg-orange-500",H:"bg-red-500"};
+const init=()=>({step:"start",teams:5,time:90,names:[],round:1,used:[],cur:null,phase:"idle",marks:{},scores:[0,0,0,0,0,0]});
+const load=()=>{try{const s=JSON.parse(localStorage.getItem("hcr2"));if(s&&s.step)return s}catch(e){}return init()};
+function beep(){try{const c=new AudioContext(),o=c.createOscillator();o.connect(c.destination);o.frequency.value=660;o.start();setTimeout(()=>o.stop(),700)}catch(e){}}
+function App(){
+const [S,setS]=useState(load),up=p=>setS(s=>({...s,...p}));
+const [left,setLeft]=useState(90),[run,setRun]=useState(false),[peek,setPeek]=useState(false),[dlg,setDlg]=useState(null);
+useEffect(()=>{try{localStorage.setItem("hcr2",JSON.stringify(S))}catch(e){}},[S]);
+useEffect(()=>{if(!run)return;const t=setInterval(()=>setLeft(l=>l-1),1000);return()=>clearInterval(t)},[run]);
+useEffect(()=>{if(run&&left<=0){setRun(false);setLeft(0);beep()}},[left,run]);
+const nm=t=>S.names[t]||"Team "+(t+1),T=Array.from({length:S.teams},(_,t)=>t),q=S.cur!=null?Q[S.cur]:null,d=(S.diffs||PLAN)[S.round-1];
+const B=(t,f,o={})=>html`<button class=${"btn "+(o.alt?"alt":"")} onClick=${f} disabled=${o.off}>${t}</button>`;
+const draw=()=>{let p=Q.map((_,k)=>k).filter(k=>!S.used.includes(k)&&Q[k][1]==d);if(!p.length)p=Q.map((_,k)=>k).filter(k=>!S.used.includes(k));setPeek(false);up({cur:p[Math.floor(Math.random()*p.length)],phase:"secret"})};
+const start=()=>{setLeft(S.time);setRun(true);up({phase:"timer"})};
+const save=()=>{const sc=[...S.scores];T.forEach(t=>{if(S.marks[t])sc[t]++});const last=S.round>=5;up({scores:sc,used:[...S.used,S.cur],cur:null,marks:{},phase:"idle",round:last?S.round:S.round+1,step:last?"end":"play"})};
+const reset=()=>setDlg({msg:"Start over? All scores will be cleared.",fn:()=>{setRun(false);setS(init())}});
+const top=T.reduce((m,t)=>Math.max(m,S.scores[t]),0),W=T.filter(t=>S.scores[t]==top);
+let view;
+if(S.step=="start")view=html`<div class="text-center space-y-6"><div class="text-7xl">🎭</div>
+<h1 class="text-5xl md:text-6xl leading-tight fancy hl">Human Charades Relay</h1><p class="text-2xl">Pass the Action, Not the Words!</p>
+<div class="card p-5 text-xl text-left max-w-md mx-auto">🤫 No talking, writing or phones<br/>👉 Tap the shoulder, act it out, pass it on<br/>🤔 The last player guesses the action</div>
+<div class="card p-5 max-w-md mx-auto space-y-4"><div class="text-xl font-bold">Teams</div><div class="flex gap-2 justify-center">${[3,4,5,6].map(n=>html`<button key=${n} class=${"btn "+(S.teams==n?"":"alt")} onClick=${()=>up({teams:n})}>${n}</button>`)}</div>
+<div class="text-xl font-bold">Seconds per round</div><div class="flex gap-2 justify-center">${[60,90,120].map(n=>html`<button key=${n} class=${"btn "+(S.time==n?"":"alt")} onClick=${()=>up({time:n})}>${n}</button>`)}</div>
+<div class="text-xl font-bold">Team names (optional)</div>${T.map(t=>html`<input key=${t} class="w-full border-2 border-pink-200 rounded-xl p-3 text-lg" placeholder=${"Team "+(t+1)} value=${S.names[t]||""} onChange=${e=>{const n=[...S.names];n[t]=e.target.value;up({names:n})}}/>`)}</div>
+${B("LET’S PLAY!",()=>up({step:"play"}))}</div>`;
+else if(S.step=="end")view=html`<div class="text-center space-y-5"><div class="text-8xl">🏆</div><div class="text-6xl fancy">GAME OVER!</div>
+<div class="text-3xl font-bold text-pink-600">Congratulations, ${W.map(nm).join(" & ")}!</div><div class="text-xl">“You are the Human Charades Relay Champions!”</div>
+<div class="card p-5 max-w-md mx-auto text-2xl">${[...T].sort((a,b)=>S.scores[b]-S.scores[a]).map(t=>html`<div key=${t} class="flex justify-between py-1"><span>${nm(t)}</span><b>${S.scores[t]}</b></div>`)}</div>${B("Play Again",()=>setS(init()))}</div>`;
+else view=html`<div class="space-y-5 text-center"><div class="flex justify-between items-center"><div class="text-3xl font-extrabold">Round ${S.round} / 5</div><span class=${"text-white font-bold px-4 py-1 rounded-full text-xl "+DC[d]}>${DN[d]}</span></div>
+${S.phase=="idle"&&html`<div class="card p-8 space-y-4"><div class="text-xl font-bold">Choose difficulty</div><div class="flex gap-2 justify-center flex-wrap">${["E","M","H"].map(v=>html`<button key=${v} class="btn" style=${{background:{E:"#22c55e",M:"#f97316",H:"#ef4444"}[v],opacity:d==v?1:.4,outline:d==v?"4px solid #7a1f3d":"none"}} onClick=${()=>{const a=[...(S.diffs||PLAN)];a[S.round-1]=v;up({diffs:a})}}>${DN[v]}</button>`)}</div><div class="text-7xl">🎲</div>${B("DRAW CHALLENGE",draw)}</div>`}
+${S.phase=="secret"&&q&&html`<div class="card p-8 space-y-4">
+${peek?html`<div class="text-7xl">${q[2]}</div><div class="text-4xl font-extrabold">${q[0]}</div><div>Remember it. Don’t tell anyone!</div>`:html`<div class="text-7xl">🤫</div><div class="text-2xl font-bold">Challenge hidden</div>`}
+<div class="flex gap-3 justify-center flex-wrap">${B(peek?"HIDE":"SHOW TO FIRST PLAYERS",()=>{if(peek)setPeek(false);else setDlg({msg:"Make sure the projector can’t show this screen. Show now?",fn:()=>setPeek(true)})},{alt:1})}${B("REDRAW",draw,{alt:1,off:peek})}</div>
+${B("START TIMER",start,{off:peek})}</div>`}
+${S.phase=="timer"&&html`<div class="card p-8 space-y-4"><div class=${"text-8xl font-extrabold tabular-nums "+(left<=10?"text-red-500":"")}>${left>0?String(Math.floor(left/60)).padStart(2,"0")+":"+String(left%60).padStart(2,"0"):"TIME’S UP!"}</div>
+<div class="flex gap-3 justify-center flex-wrap">${B(run?"PAUSE":"RESUME",()=>setRun(!run),{alt:1,off:left<=0})}${B("+30 SEC",()=>{setLeft(l=>l+30);if(left<=0)setRun(true)},{alt:1})}</div>${B("REVEAL ANSWER",()=>{setRun(false);up({phase:"answer"})})}</div>`}
+${S.phase=="answer"&&q&&html`<div class="card p-6 space-y-4"><div class="text-xl">THE CORRECT ANSWER WAS…</div><div class="text-6xl">${q[2]}</div><div class="text-4xl font-extrabold">“${q[0]}!”</div>
+<div class="text-lg">Tap the teams that guessed right</div><div class="grid grid-cols-2 gap-2">${T.map(t=>html`<button key=${t} onClick=${()=>up({marks:{...S.marks,[t]:!S.marks[t]}})} class=${"btn "+(S.marks[t]?"":"alt")}>${S.marks[t]?"✅ ":""}${nm(t)}</button>`)}</div>
+${B(S.round>=5?"FINISH GAME":"SAVE & NEXT ROUND",save)}</div>`}
+<div class="card p-4 flex flex-wrap gap-x-5 gap-y-1 justify-center text-lg">${T.map(t=>html`<span key=${t}>${nm(t)}: <b>${S.scores[t]}</b></span>`)}</div></div>`;
+return html`<div class="max-w-2xl mx-auto p-4 md:p-8 min-h-screen">${dlg&&html`<div class="fixed inset-0 z-50 flex items-center justify-center p-4" style=${{background:"rgba(0,0,0,.45)"}}><div class="card p-6 max-w-sm text-center space-y-4"><div class="text-2xl font-bold">${dlg.msg}</div><div class="flex gap-3 justify-center"><button class="btn alt" onClick=${()=>setDlg(null)}>Cancel</button><button class="btn" onClick=${()=>{const f=dlg.fn;setDlg(null);f()}}>Yes</button></div></div></div>`}${S.step!="start"&&html`<div class="text-right mb-3"><button class="btn alt" style=${{minHeight:"48px",padding:".6rem 1.3rem",fontSize:"1.05rem"}} onClick=${reset}>↺ Start over</button></div>`}${view}</div>`}
+ReactDOM.createRoot(document.getElementById("root")).render(html`<${App}/>`);
+</script></body></html>
